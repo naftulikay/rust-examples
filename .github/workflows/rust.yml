@@ -10,7 +10,7 @@ on:
 
 env:
   CACHE_VERSION: v1
-  RUSTC_WRAPPER: "${{ env.HOME }}/.cargo/bin/sccache"
+  RUSTC_WRAPPER: "$HOME/.cargo/bin/sccache"
   SCCACHE_VERSION: 0.5.4
 
 jobs:
