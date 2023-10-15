@@ -25,6 +25,10 @@ impl SemanticVersion {
             bugfix: None,
         }
     }
+
+    pub fn v(&self) -> String {
+        format!("v{}", self.to_string())
+    }
 }
 
 impl Display for SemanticVersion {
