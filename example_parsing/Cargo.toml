@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 nom = "7"
-serde = { version = "1", features = ["derive"] }
