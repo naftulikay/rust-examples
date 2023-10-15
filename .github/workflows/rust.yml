@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
       - run: lib/install-sccache
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release
+      - run: cargo build --release --verbose
 
   test:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
             ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
       - run: lib/install-sccache
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --all-features
+      - run: cargo test --all-features --verbose
 
   audit:
     runs-on: ubuntu-latest
