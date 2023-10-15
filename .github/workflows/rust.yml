@@ -1,0 +1,78 @@
+---
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  CACHE_VERSION: v1
+  RUSTC_WRAPPER: "${{ env.HOME }}/.cargo/bin/sccache"
+  SCCACHE_VERSION: 0.5.4
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-build-${{ hashFiles("Cargo.toml", "./nkay_ex_*/Cargo.toml") }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cache/sccache/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-build-
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+      - run: lib/install-sccache
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-test-${{ hashFiles("Cargo.toml", "./nkay_ex_*/Cargo.toml") }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cache/sccache/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-test-
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+      - run: lib/install-sccache
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-features
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-audit-${{ hashFiles("Cargo.toml", "./nkay_ex_*/Cargo.toml") }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cache/sccache/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-audit-
+            ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+      - run: lib/install-sccache
+      - run: cargo install cargo-audit
+      - run: cargo audit
