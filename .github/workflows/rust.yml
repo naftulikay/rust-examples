@@ -27,6 +27,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ~/.cache/sccache/
+            ~/.rustup/
             target/
           restore-keys: |
             ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-build-
@@ -48,6 +49,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ~/.cache/sccache/
+            ~/.rustup/
             target/
           restore-keys: |
             ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-test-
@@ -69,6 +71,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ~/.cache/sccache/
+            ~/.rustup/
             target/
           restore-keys: |
             ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}-audit-
