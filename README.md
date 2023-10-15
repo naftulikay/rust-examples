@@ -2,9 +2,9 @@
 
 A repository filled with examples of usage of Rust and the Rust ecosystem.
 
-## Examples
+## Crates
 
- - **Parsing**
+ - [`example_parsing`](./example_parsing): parsing examples, largely featuring `nom`
 
 ## License
 
@@ -13,5 +13,5 @@ Licensed at your discretion under either:
  - [Apache Software License, Version 2.0](./LICENSE-APACHE)
  - [MIT License](./LICENSE-MIT)
 
- [status]: https://github.com
- [status.svg]: https://github.com
+ [status]:     https://github.com/naftulikay/rust-examples/actions/workflows/rust.yml
+ [status.svg]: https://github.com/naftulikay/rust-examples/actions/workflows/rust.yml/badge.svg
