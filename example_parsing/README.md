@@ -22,6 +22,16 @@ Values can be constructed using `FromStr` and from `SemanticVersion::parse`, as 
 
 Parsing is done via `nom`, and should be extraordinarily fast.
 
+String inputs should be of the forms:
+
+ - `v1.2.3`
+ - `v0.1`
+ - `1.2.3`
+ - `0.1`
+
+String outputs will follow the same format yet will not be prefixed with a `v` unless `SemanticVersion::prefixed` is
+used.
+
 Consult the [module doc-strings](./src/semver.rs) for more information as well as the source code.
 
  [nom]: https://docs.rs/nom/latest/nom/
