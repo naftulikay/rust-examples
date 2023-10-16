@@ -18,21 +18,56 @@
 //!
 //! [SemanticVersion] implements [FromStr], and provides a `parse` function which internally calls
 //! the [FromStr] implementation.
+//!
+//! ## Serde
+//!
+//! [serde] support is also included with [Serialize] and [Deserialize] support. The default
+//! implementation will not include a `v` prefix.
+//!
+//! To serialize with a `v` prefix, use `#[serde(with = "example_parsing::semver::prefixed")]`:
+//!
+//! ```rust
+//! use example_parsing::semver::{self, SemanticVersion};
+//! use serde::{Deserialize, Serialize};
+//!
+//! #[derive(Debug, Deserialize, Serialize)]
+//! pub struct Container {
+//!     #[serde(with = "semver::prefixed")]
+//!     pub version: SemanticVersion,
+//! }
+//! ```
+//!
+//! ## Clap
+//!
+//! [SemanticVersion] also supports [clap] right out-of-the-box:
+//!
+//! ```rust
+//! use example_parsing::semver::SemanticVersion;
+//! use clap::Parser;
+//!
+//! #[derive(Debug, Parser)]
+//! #[command(name = "prog")]
+//! pub struct Args {
+//!     #[arg(short = 'V', long = "semver")]
+//!     pub version: SemanticVersion,
+//! }
+//! ```
 
 #[cfg(test)]
 mod tests;
 
+use anyhow::{Context, Error, Result};
 use nom::character::{complete::char, complete::digit1};
 use nom::combinator::{map, opt};
-use nom::IResult;
-
-use anyhow::{Context, Error, Result};
 use nom::sequence::preceded;
+use nom::IResult;
+use serde::{de, ser, Deserializer, Serializer};
+
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 /// Representation of a semantic version with an optional bugfix revision.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SemanticVersion {
     pub major: u64,
     pub minor: u64,
@@ -113,5 +148,78 @@ impl FromStr for SemanticVersion {
             .map(|(_, v)| v)
             .map_err(|e| e.to_owned())
             .with_context(|| format!("Unable to parse input as semantic version"))?)
+    }
+}
+
+impl ser::Serialize for SemanticVersion {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
+struct SemanticVersionVisitor;
+
+impl<'de> de::Visitor<'de> for SemanticVersionVisitor {
+    type Value = SemanticVersion;
+
+    fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        formatter.write_str("a semantic version including at least major and minor versions, optionally a bugfix version, delimited by '.', and optionally prefixed with a literal 'v'")
+    }
+
+    fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        v.parse().map_err(E::custom)
+    }
+}
+
+impl<'de> de::Deserialize<'de> for SemanticVersion {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(SemanticVersionVisitor)
+    }
+}
+
+/// Convenience module for use with [serde]'s `with` derive parameter.
+///
+/// Example:
+///
+/// ```rust
+/// use example_parsing::semver::{self, SemanticVersion};///
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Debug, Deserialize, Serialize)]
+/// pub struct PrefixedContainer {
+///     #[serde(with = "semver::prefixed")]
+///     pub version: SemanticVersion,
+/// }
+/// ```
+pub mod prefixed {
+    use super::{SemanticVersion, SemanticVersionVisitor};
+
+    use serde::{de, ser};
+
+    /// Serialize a [SemanticVersion] including a `v` prefix.
+    pub fn serialize<S>(v: &SemanticVersion, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serializer.serialize_str(v.v().as_str())
+    }
+
+    /// Deserialize a [SemanticVersion].
+    ///
+    /// Does not differ from the default implementation.
+    pub fn deserialize<'de, D>(d: D) -> Result<SemanticVersion, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        d.deserialize_str(SemanticVersionVisitor)
     }
 }
