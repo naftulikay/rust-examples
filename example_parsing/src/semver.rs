@@ -14,7 +14,7 @@
 //! output versions without a `v` prefix and works exactly how one would expect: if there is a
 //! bugfix revision, it will be included, if there is not, it won't be.
 //!
-//! If a `v` prefix is preferred, [SemanticVersion::v] will produce a string accordingly.
+//! If a `v` prefix is preferred, [SemanticVersion::prefixed] will produce a string accordingly.
 //!
 //! [SemanticVersion] implements [FromStr], and provides a `parse` function which internally calls
 //! the [FromStr] implementation.
@@ -94,7 +94,7 @@ impl SemanticVersion {
     }
 
     /// Format this [SemanticVersion] to a string with a `v` prefix.
-    pub fn v(&self) -> String {
+    pub fn prefixed(&self) -> String {
         format!("v{}", self.to_string())
     }
 
@@ -210,7 +210,7 @@ pub mod prefixed {
     where
         S: ser::Serializer,
     {
-        serializer.serialize_str(v.v().as_str())
+        serializer.serialize_str(v.prefixed().as_str())
     }
 
     /// Deserialize a [SemanticVersion].

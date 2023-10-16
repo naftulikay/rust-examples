@@ -4,7 +4,8 @@ A repository filled with examples of usage of Rust and the Rust ecosystem.
 
 ## Crates
 
- - [`example_parsing`](./example_parsing): parsing examples, largely featuring `nom`
+ - [`example_parsing`](./example_parsing): parsing examples, largely featuring `nom`, but including support for `serde`,
+   `clap`, and others.
 
 ## License
 
