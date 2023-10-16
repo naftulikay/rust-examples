@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-nom = "7"
+nom.workspace = true
+serde.workspace = true
+serde_json.workspace = true

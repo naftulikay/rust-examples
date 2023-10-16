@@ -1,3 +1,24 @@
+//! Simple example utilizing [nom] to parse semantic versions as strings into fully-structured
+//! [SemanticVersion] objects.
+//!
+//! ## Displaying and Parsing
+//!
+//! Valid semantic version strings can look like these:
+//!
+//!  - `0.2`
+//!  - `v1.2`
+//!  - `1.23.4`
+//!  - `v0.5.6`
+//!
+//! The `v` prefix is optional and is discarded during parsing. [Display] is implemented, and will
+//! output versions without a `v` prefix and works exactly how one would expect: if there is a
+//! bugfix revision, it will be included, if there is not, it won't be.
+//!
+//! If a `v` prefix is preferred, [SemanticVersion::v] will produce a string accordingly.
+//!
+//! [SemanticVersion] implements [FromStr], and provides a `parse` function which internally calls
+//! the [FromStr] implementation.
+
 #[cfg(test)]
 mod tests;
 
