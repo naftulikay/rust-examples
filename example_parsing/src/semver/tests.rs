@@ -64,6 +64,79 @@ fn test_from_str() {
     );
 }
 
+/// Tests equal/le/ge between [SemanticVersion]s.
+#[test]
+fn test_ord_equal() {
+    // major
+    assert!(SemanticVersion::new(1, 0, 0).eq(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::new(1, 0, 0).le(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::new(1, 0, 0).ge(&SemanticVersion::new(1, 0, 0)));
+    // minor
+    assert!(SemanticVersion::new(0, 1, 0).eq(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::new(0, 1, 0).le(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::new(0, 1, 0).ge(&SemanticVersion::new(0, 1, 0)));
+    // bugfix
+    assert!(SemanticVersion::new(0, 0, 1).eq(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::new(0, 0, 1).le(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::new(0, 0, 1).ge(&SemanticVersion::new(0, 0, 1)));
+    // abridged
+    assert!(SemanticVersion::abridged(1, 0).eq(&SemanticVersion::abridged(1, 0)));
+    assert!(SemanticVersion::abridged(1, 0).le(&SemanticVersion::abridged(1, 0)));
+    assert!(SemanticVersion::abridged(1, 0).ge(&SemanticVersion::abridged(1, 0)));
+}
+
+/// Tests normal greater/equal between [SemanticVersion]s.
+///
+/// Does not test abridged superiority over bugfix releases.
+#[test]
+fn test_ord_greater() {
+    // major
+    assert!(SemanticVersion::new(1, 0, 0).ge(&SemanticVersion::new(0, 1, 1)));
+    assert!(SemanticVersion::new(1, 0, 0).gt(&SemanticVersion::new(0, 1, 1)));
+    assert!(SemanticVersion::abridged(1, 0).ge(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::abridged(1, 0).gt(&SemanticVersion::new(0, 1, 0)));
+    // minor
+    assert!(SemanticVersion::new(0, 1, 0).ge(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::new(0, 1, 0).gt(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::abridged(0, 1).ge(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::abridged(0, 1).gt(&SemanticVersion::new(0, 0, 1)));
+    // bugfix
+    assert!(SemanticVersion::new(0, 0, 1).ge(&SemanticVersion::new(0, 0, 0)));
+    assert!(SemanticVersion::new(0, 0, 1).gt(&SemanticVersion::new(0, 0, 0)));
+}
+
+/// Tests normal less/equal between [SemanticVersion]s.
+///
+/// Does not test abridged superiority over bugfix releases.
+#[test]
+fn test_ord_less() {
+    // major
+    assert!(SemanticVersion::new(0, 1, 1).le(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::new(0, 1, 1).lt(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::abridged(0, 1).le(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::abridged(0, 1).lt(&SemanticVersion::new(1, 0, 0)));
+    // minor
+    assert!(SemanticVersion::new(0, 0, 1).le(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::new(0, 0, 1).lt(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::abridged(0, 0).le(&SemanticVersion::new(0, 1, 0)));
+    assert!(SemanticVersion::abridged(0, 0).lt(&SemanticVersion::new(0, 1, 0)));
+    // bugfix
+    assert!(SemanticVersion::new(0, 0, 0).le(&SemanticVersion::new(0, 0, 1)));
+    assert!(SemanticVersion::new(0, 0, 0).lt(&SemanticVersion::new(0, 0, 1)));
+}
+
+#[test]
+fn test_ord_greater_abridged() {
+    assert!(SemanticVersion::abridged(1, 0).ge(&SemanticVersion::new(1, 0, 0)));
+    assert!(SemanticVersion::abridged(1, 0).gt(&SemanticVersion::new(1, 0, 0)));
+}
+
+#[test]
+fn test_ord_less_abridged() {
+    assert!(SemanticVersion::new(1, 0, 0).le(&SemanticVersion::abridged(1, 0)));
+    assert!(SemanticVersion::new(1, 0, 0).lt(&SemanticVersion::abridged(1, 0)));
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Container {
     version: SemanticVersion,

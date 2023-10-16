@@ -1,6 +1,17 @@
 //! Simple example utilizing [nom] to parse semantic versions as strings into fully-structured
 //! [SemanticVersion] objects.
 //!
+//! ## Comparing, Sorting, and Equality
+//!
+//! We are doing something non-trivial here with [Ord] and [PartialOrd]. Generally **you should
+//! never implement these traits yourself**, but in this case, we must because of a certain feature
+//! we require. In our case, a _less-specific_ semantic version containing only a major and a minor
+//! version should always be sorted _before_ a more specific version.
+//!
+//! For instance, using the derive macro, Rust would see `1.0.0` as sorting _before_ `1.0` due to
+//! the bugfix version being an [Option<u64>]. We had to implement [Ord] and [PartialOrd] in order
+//! to override this, to ensure that `1.0` always sorts as higher priority than `1.0.0`.
+//!
 //! ## Displaying and Parsing
 //!
 //! Valid semantic version strings can look like these:
@@ -62,6 +73,7 @@ use nom::combinator::{map, opt};
 use nom::sequence::preceded;
 use nom::IResult;
 use serde::{de, ser, Deserializer, Serializer};
+use std::cmp::Ordering;
 
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -148,6 +160,51 @@ impl FromStr for SemanticVersion {
             .map(|(_, v)| v)
             .map_err(|e| e.to_owned())
             .with_context(|| format!("Unable to parse input as semantic version"))?)
+    }
+}
+
+impl Ord for SemanticVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // NOTE you should never implement PartialOrd yourself, but we have a unique case: when
+        //      bugfix is None, it should always be equal/ge/le than an unabridged release with the
+        //      same major/minor.
+        if self.major.gt(&other.major) {
+            return Ordering::Greater;
+        } else if self.major.lt(&other.major) {
+            return Ordering::Less;
+        }
+
+        if self.minor.gt(&other.minor) {
+            return Ordering::Greater;
+        } else if self.minor.lt(&other.minor) {
+            return Ordering::Less;
+        }
+
+        // at this point, major is equal, and minor is equal, so it's bugfix comparison time
+
+        // if both bugfixes are empty, we are equal
+        if self.bugfix.is_none() && other.bugfix.is_none() {
+            return Ordering::Equal;
+        }
+
+        // if my bugfix is empty and the other is not, I am greater
+        if self.bugfix.is_none() && other.bugfix.is_some() {
+            return Ordering::Greater;
+        }
+
+        // if the other bugfix is empty and mine is not, I am lesser
+        if self.bugfix.is_some() && other.bugfix.is_none() {
+            return Ordering::Less;
+        }
+
+        // at this point, we know that we both have bugfix versions, so compare them and end
+        self.bugfix.cmp(&other.bugfix)
+    }
+}
+
+impl PartialOrd for SemanticVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
