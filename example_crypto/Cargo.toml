@@ -1,14 +1,17 @@
 [package]
-name = "example_parsing"
+name = "example_crypto"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bench]]
+name = "keygen"
+harness = false
+
 [dependencies]
-anyhow.workspace = true
-clap.workspace = true
-nom.workspace = true
-serde.workspace = true
-serde_json.workspace = true
+openssl = { version = "0.10", features = ["vendored"] }
+
+[dev-dependencies]
+criterion.workspace = true
