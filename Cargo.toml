@@ -5,6 +5,9 @@ members = [
     "example_parsing",
 ]
 
+[profile.bench]
+debug = true
+
 [workspace.dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

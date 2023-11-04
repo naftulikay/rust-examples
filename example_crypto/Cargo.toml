@@ -11,6 +11,10 @@ name = "keygen"
 harness = false
 
 [[bench]]
+name = "rand"
+harness = false
+
+[[bench]]
 name = "sign"
 harness = false
 
