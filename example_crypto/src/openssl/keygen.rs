@@ -7,7 +7,7 @@ pub struct KeyPair {
     pub public: Vec<u8>,
 }
 
-pub fn keygen(group: &EcGroup) -> KeyPair {
+pub fn keygen_ec(group: &EcGroup) -> KeyPair {
     let private = EcKey::generate(group).unwrap();
 
     KeyPair {

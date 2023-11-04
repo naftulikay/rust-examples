@@ -10,8 +10,13 @@ publish = false
 name = "keygen"
 harness = false
 
+[[bench]]
+name = "sign"
+harness = false
+
 [dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
+rand.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

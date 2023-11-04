@@ -1,7 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use example_crypto::openssl::keygen::{
-    keygen, keygen_ed25519, keygen_ed448, keygen_rsa, keygen_x25519, keygen_x448,
-};
+use example_crypto::openssl::keygen::{keygen_ec, keygen_ed25519, keygen_ed448, keygen_rsa, keygen_x25519, keygen_x448};
 use openssl::ec::EcGroup;
 use openssl::nid::Nid;
 
@@ -16,7 +14,7 @@ pub fn bench_keygen(c: &mut Criterion) {
 
     // ecdsa
     c.bench_function("openssl::keygen::secp256", |b| {
-        b.iter(|| keygen(&secp256k1))
+        b.iter(|| keygen_ec(&secp256k1))
     });
 
     // rsa
@@ -25,5 +23,10 @@ pub fn bench_keygen(c: &mut Criterion) {
     c.bench_function("openssl::keygen::rsa4096", |b| b.iter(|| keygen_rsa(4096)));
 }
 
-criterion_group!(benches, bench_keygen);
-criterion_main!(benches);
+criterion_group!{
+    name = keygen;
+    config = Criterion::default();
+    targets = bench_keygen
+}
+
+criterion_main!(keygen);
