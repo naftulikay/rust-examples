@@ -13,7 +13,10 @@ cargo run --example client_ca
 ```
 
 Private keys, certificates, chains, and a `*.p12` encrypted archive containing the full client cert chain and private
-key will be generated in [`output/client-ca`](../output/client-ca).
+key will be generated in `output/client-ca` in the repository root.
+
+X509 is configured fairly securely, limiting key usage/basic/extended constraints, such that there are at max two
+levels of CAs, and the client certificate is limited to only being used for client authentication.
 
 ## Benchmarks
 a
