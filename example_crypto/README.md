@@ -19,7 +19,9 @@ X509 is configured fairly securely, limiting key usage/basic/extended constraint
 levels of CAs, and the client certificate is limited to only being used for client authentication.
 
 ## Benchmarks
-a
+
+Various benchmark suites exist.
+
 ### Key Generation
 
 Benchmark key generation for common asymmetric algorithms such as RSA, Ed25519, Ed448, secp256k1, and secp384r1:
