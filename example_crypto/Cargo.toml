@@ -18,7 +18,12 @@ harness = false
 name = "sign"
 harness = false
 
+[[example]]
+name = "client_ca"
+path = "examples/client_ca.rs"
+
 [dependencies]
+base64.workspace = true
 openssl = { version = "0.10", features = ["vendored"] }
 rand.workspace = true
 
