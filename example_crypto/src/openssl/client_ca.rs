@@ -1,14 +1,15 @@
 //! Example demonstrating the generation of a two-layer certificate authority (CA) and a client
 //! certificate, verifying the whole process.
 
-use openssl::asn1::Asn1Time;
+use openssl::asn1::{Asn1Integer, Asn1Time};
 use openssl::error::ErrorStack;
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
 use openssl::pkey::{PKey, Private};
-use openssl::x509::extension::{BasicConstraints, ExtendedKeyUsage};
-use openssl::x509::{X509Name, X509NameRef, X509};
+use openssl::x509::extension::{BasicConstraints, ExtendedKeyUsage, KeyUsage};
+use openssl::x509::{X509Name, X509NameRef, X509VerifyResult, X509};
 
+use openssl::bn::BigNum;
 use std::ops::{Add, Sub};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -16,7 +17,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 ///
 /// This is set to 30 minutes. This is important because of user clock drift. With this setting, we
 /// ensure that users with a clock up to 30 minutes off will still pass validation.
-const NOT_BEFORE_DRIFT_DURATION: Duration = Duration::from_secs(60 * 30);
+pub const NOT_BEFORE_DRIFT_DURATION: Duration = Duration::from_secs(60 * 30);
 
 /// The certificate expiry duration for the client certificate.
 ///
@@ -32,6 +33,11 @@ pub const INTERMEDIATE_EXPIRY_DURATION: Duration = Duration::from_secs(60 * 60 *
 ///
 /// Set to 6 hours.
 pub const ROOT_EXPIRY_DURATION: Duration = Duration::from_secs(60 * 60 * 6);
+
+/// The X509 version to use when generating certificates.
+///
+/// This is zero-indexed, so version 3 is represented by `2`.
+pub const X509_CERT_VERSION: i32 = 3 - 1;
 
 /// The subject name to use for the client certificate.
 pub const X509_CLIENT_SUBJECT_NAME: &str = "Rust Example Client Certificate";
@@ -80,7 +86,7 @@ impl ClientCAExample {
             &config.client_config,
             &client_key,
             &intermediate_key,
-            intermediate_cert.issuer_name(),
+            intermediate_cert.subject_name(),
         )?;
 
         Ok(Self {
@@ -103,8 +109,18 @@ impl ClientCAExample {
         let subject_name = {
             let mut n = X509Name::builder()?;
             n.append_entry_by_nid(Nid::COMMONNAME, config.subject_name.as_str())?;
+            n.append_entry_by_nid(Nid::COUNTRYNAME, "US")?;
+            n.append_entry_by_nid(Nid::ORGANIZATIONNAME, "Naftuli, Inc.")?;
+            n.append_entry_by_nid(Nid::ORGANIZATIONALUNITNAME, "naftuli.wtf")?;
             n.build()
         };
+
+        // set key usage
+        let key_usage = KeyUsage::new()
+            .critical()
+            .digital_signature()
+            .key_cert_sign()
+            .build()?;
 
         // set basic constraints to being critical, being a CA, and only supporting one level of
         // intermediate CA certificates
@@ -121,12 +137,17 @@ impl ClientCAExample {
 
         let cert = {
             let mut builder = X509::builder()?;
+            builder.set_version(X509_CERT_VERSION)?;
             builder.set_subject_name(&subject_name)?;
-            builder.set_version(config.cert_version)?;
-            // don't set issuer name on root CA
+            builder.set_serial_number(
+                Asn1Integer::from_bn(BigNum::from_u32(config.serial_number)?.as_ref())?.as_ref(),
+            )?;
+            // set issuer name to subject name (self-referential) on root ca
+            builder.set_issuer_name(&subject_name)?;
             builder.set_not_before(&not_before)?;
             builder.set_not_after(&not_after)?;
             builder.set_pubkey(key)?;
+            builder.append_extension(key_usage)?;
             builder.append_extension(basic)?;
             // with ed25519, it seems openssl does not support message digest for the signature
             builder.sign(key, MessageDigest::null())?;
@@ -146,8 +167,18 @@ impl ClientCAExample {
         let subject_name = {
             let mut n = X509Name::builder()?;
             n.append_entry_by_nid(Nid::COMMONNAME, config.subject_name.as_str())?;
+            n.append_entry_by_nid(Nid::COUNTRYNAME, "US")?;
+            n.append_entry_by_nid(Nid::ORGANIZATIONNAME, "Naftuli, Inc.")?;
+            n.append_entry_by_nid(Nid::ORGANIZATIONALUNITNAME, "naftuli.wtf")?;
             n.build()
         };
+
+        // set key usage
+        let key_usage = KeyUsage::new()
+            .critical()
+            .digital_signature()
+            .key_cert_sign()
+            .build()?;
 
         // set basic constraints
         let basic = BasicConstraints::new()
@@ -163,13 +194,17 @@ impl ClientCAExample {
 
         let cert = {
             let mut builder = X509::builder()?;
+            builder.set_version(X509_CERT_VERSION)?;
             builder.set_subject_name(&subject_name)?;
-            builder.set_version(config.cert_version)?;
+            builder.set_serial_number(
+                Asn1Integer::from_bn(BigNum::from_u32(config.serial_number)?.as_ref())?.as_ref(),
+            )?;
             // set issuer since we have a parent
             builder.set_issuer_name(root_subject_name)?;
             builder.set_not_before(&not_before)?;
             builder.set_not_after(&not_after)?;
             builder.set_pubkey(key)?;
+            builder.append_extension(key_usage)?;
             builder.append_extension(basic)?;
 
             // sign using the root ca key
@@ -207,13 +242,17 @@ impl ClientCAExample {
 
         let cert = {
             let mut builder = X509::builder()?;
+            builder.set_version(X509_CERT_VERSION)?;
             builder.set_subject_name(&subject_name)?;
-            builder.set_version(config.cert_version)?;
+            builder.set_serial_number(
+                Asn1Integer::from_bn(BigNum::from_u32(config.serial_number)?.as_ref())?.as_ref(),
+            )?;
             // set issuer since we have a parent
             builder.set_issuer_name(intermediate_subject_name)?;
             builder.set_not_before(&not_before)?;
             builder.set_not_after(&not_after)?;
             builder.set_pubkey(key)?;
+            // NOTE on client certificates, key usage should not be set and extended should include client auth
             // basic constraints
             builder.append_extension(basic)?;
             // extended constraints
@@ -239,6 +278,14 @@ impl ClientCAExample {
             return Ok(false);
         }
 
+        if self.root_cert.issued(&self.root_cert) != X509VerifyResult::OK {
+            eprintln!(
+                "Verification that root CA issued itself failed: {}",
+                self.root_cert.issued(&self.root_cert).error_string()
+            );
+            return Ok(false);
+        }
+
         // verify that intermediate is signed by root
         if !self
             .intermediate_cert
@@ -249,6 +296,16 @@ impl ClientCAExample {
             return Ok(false);
         }
 
+        if self.root_cert.issued(&self.intermediate_cert) != X509VerifyResult::OK {
+            eprintln!(
+                "Verification that root CA issued intermediate CA failed: {}",
+                self.root_cert
+                    .issued(&self.intermediate_cert)
+                    .error_string()
+            );
+            return Ok(false);
+        }
+
         // verify that client is signed by intermediate
         if !self
             .client_cert
@@ -256,6 +313,16 @@ impl ClientCAExample {
             .unwrap()
         {
             eprintln!("Verification of client certificate failed");
+        }
+
+        if self.intermediate_cert.issued(&self.client_cert) != X509VerifyResult::OK {
+            eprintln!(
+                "Verification that intermediate CA issued client certificate failed: {}",
+                self.intermediate_cert
+                    .issued(&self.client_cert)
+                    .error_string()
+            );
+            return Ok(false);
         }
 
         Ok(true)
@@ -277,14 +344,14 @@ impl Default for ClientCAConfig {
                 subject_name: X509_ROOT_SUBJECT_NAME.into(),
                 max_drift: NOT_BEFORE_DRIFT_DURATION,
                 validity: ROOT_EXPIRY_DURATION,
-                cert_version: 1000,
+                serial_number: 1000,
             },
             intermediate_config: CAConfig {
                 ca_type: CAType::Intermediate,
                 subject_name: X509_INTERMEDIATE_SUBJECT_NAME.into(),
                 max_drift: NOT_BEFORE_DRIFT_DURATION,
                 validity: INTERMEDIATE_EXPIRY_DURATION,
-                cert_version: 2000,
+                serial_number: 2000,
             },
             client_config: Default::default(),
         }
@@ -297,7 +364,7 @@ pub struct CAConfig {
     pub subject_name: String,
     pub max_drift: Duration,
     pub validity: Duration,
-    pub cert_version: i32,
+    pub serial_number: u32,
 }
 
 #[derive(Debug)]
@@ -320,7 +387,7 @@ pub struct ClientCertConfig {
     pub subject_name: String,
     pub max_drift: Duration,
     pub validity: Duration,
-    pub cert_version: i32,
+    pub serial_number: u32,
 }
 
 impl Default for ClientCertConfig {
@@ -329,7 +396,7 @@ impl Default for ClientCertConfig {
             subject_name: X509_CLIENT_SUBJECT_NAME.into(),
             max_drift: NOT_BEFORE_DRIFT_DURATION,
             validity: CLIENT_EXPIRY_DURATION,
-            cert_version: 3000,
+            serial_number: 3000,
         }
     }
 }
