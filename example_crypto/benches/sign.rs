@@ -10,13 +10,9 @@ fn bench_sign(c: &mut Criterion) {
         const DATA_COUNT: usize = 512;
 
         // build 256 signers
-        let keys: Vec<Ed25519Signer> = (0..KEY_COUNT)
-            .into_iter()
-            .map(|_| Ed25519Signer::random())
-            .collect();
+        let keys: Vec<Ed25519Signer> = (0..KEY_COUNT).map(|_| Ed25519Signer::random()).collect();
 
         let data: Vec<[u8; 32]> = (0..DATA_COUNT)
-            .into_iter()
             .map(|_| {
                 let mut d = [0; 32];
                 thread_rng().fill_bytes(&mut d);
