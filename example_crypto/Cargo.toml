@@ -23,6 +23,10 @@ name = "client_ca"
 path = "examples/client_ca.rs"
 
 [[example]]
+name = "client_ca_p12"
+path = "examples/client_ca_p12.rs"
+
+[[example]]
 name = "openssl_sequoia"
 path = "examples/openssl_sequoia.rs"
 
