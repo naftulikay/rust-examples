@@ -22,10 +22,19 @@ harness = false
 name = "client_ca"
 path = "examples/client_ca.rs"
 
+[[example]]
+name = "openssl_sequoia"
+path = "examples/openssl_sequoia.rs"
+
 [dependencies]
+anyhow.workspace = true
 base64.workspace = true
+hex.workspace = true
 openssl = { version = "0.10", features = ["vendored"] }
 rand.workspace = true
+sequoia-openpgp = "1"
+tracing.workspace = true
+tracing-subscriber.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

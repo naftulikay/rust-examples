@@ -18,6 +18,19 @@ key will be generated in `output/client-ca` in the repository root.
 X509 is configured fairly securely, limiting key usage/basic/extended constraints, such that there are at max two
 levels of CAs, and the client certificate is limited to only being used for client authentication.
 
+### OpenSSL + Sequoia OpenPGP: Import Keypair
+
+To demonstrate generation of public/private ed25519 keys in OpenSSL and then to import these keys into a new PGP
+identity:
+
+```shell
+cargo run --example openssl_sequoia
+```
+
+Most PGP implementations do not allow users to import a keypair from an external source. Generally speaking, you should
+not do things the way that this example presents. This is being done as an experiment to determine whether it would be
+possible to sign X509 certificates using a private key in in a PGP keyring.
+
 ## Benchmarks
 
 Various benchmark suites exist.
