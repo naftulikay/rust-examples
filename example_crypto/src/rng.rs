@@ -1,7 +1,3 @@
-mod rand_crate;
-mod rand_openssl;
-mod rand_sys;
-
 #[cfg(test)]
 mod tests;
 
@@ -9,13 +5,6 @@ use rand::rngs::{OsRng, ThreadRng};
 use rand::Rng;
 use std::fs::File;
 use std::io::{BufReader, Read};
-
-pub use rand_crate::SecureOsGenerator as RandCrateOs;
-pub use rand_crate::SecureThreadGenerator as RandCrateThread;
-pub use rand_sys::SysRandomBufferedGenerator as SysRandomBuffered;
-pub use rand_sys::SysRandomDirectGenerator as SysRandomDirect;
-pub use rand_sys::SysUrandomBufferedGenerator as SysUrandomBuffered;
-pub use rand_sys::SysUrandomDirectGenerator as SysUrandomDirect;
 
 /// Generates random data into either a mutable slice, a stack-allocated array, or a heap-allocated
 /// [Vec] of bytes.
@@ -36,27 +25,58 @@ pub trait RandGenerator {
     }
 }
 
-pub struct FileRng {
-    file: File,
+/// Provides a prefix for benchmark suites.
+pub trait RandGeneratorBenchmark {
+    /// The prefix name for benchmarking.
+    const PREFIX: &'static str;
 }
 
-impl RandGenerator for FileRng {
-    fn fill(&mut self, bytes: &mut [u8]) {
-        assert_eq!(
-            bytes.len(),
-            self.file.read(bytes).expect("unable to read from rng file")
-        );
+struct ReadRng<R: Read> {
+    reader: R,
+}
+
+impl<R> ReadRng<R>
+where
+    R: Read,
+{
+    pub fn new(reader: R) -> Self {
+        Self { reader }
     }
 }
 
-pub struct DevRandomDirectRng(FileRng);
+impl<R> RandGenerator for ReadRng<R>
+where
+    R: Read,
+{
+    fn fill(&mut self, bytes: &mut [u8]) {
+        let mut written = 0;
+
+        while written < bytes.len() {
+            match self.reader.read(&mut bytes[written..]) {
+                Ok(w) => written += w,
+                Err(e) => panic!("{:?}", e),
+            }
+        }
+
+        if written != bytes.len() {
+            panic!("did not fill the entire buffer");
+        }
+    }
+}
+
+/// RNG implementation over `/dev/random` directly.
+pub struct DevRandomDirectRng(ReadRng<File>);
 
 impl DevRandomDirectRng {
-    pub const PREFIX: &'static str = "rng::sys::random::direct";
-
     pub fn new() -> Self {
-        Self(FileRng {
-            file: File::options()
+        Default::default()
+    }
+}
+
+impl Default for DevRandomDirectRng {
+    fn default() -> Self {
+        Self(ReadRng {
+            reader: File::options()
                 .read(true)
                 .open("/dev/random")
                 .expect("unable to open /dev/random direct reader"),
@@ -70,14 +90,23 @@ impl RandGenerator for DevRandomDirectRng {
     }
 }
 
-pub struct DevUrandomDirectRng(FileRng);
+impl RandGeneratorBenchmark for DevRandomDirectRng {
+    const PREFIX: &'static str = "rng::sys::random::direct";
+}
+
+/// RNG implementation over `/dev/urandom` directly.
+pub struct DevUrandomDirectRng(ReadRng<File>);
 
 impl DevUrandomDirectRng {
-    pub const PREFIX: &'static str = "rng::sys::urandom::direct";
-
     pub fn new() -> Self {
-        Self(FileRng {
-            file: File::options()
+        Default::default()
+    }
+}
+
+impl Default for DevUrandomDirectRng {
+    fn default() -> Self {
+        Self(ReadRng {
+            reader: File::options()
                 .read(true)
                 .open("/dev/urandom")
                 .expect("unable to open /dev/urandom direct reader"),
@@ -91,29 +120,23 @@ impl RandGenerator for DevUrandomDirectRng {
     }
 }
 
-pub struct BufFileRng {
-    file: BufReader<File>,
+impl RandGeneratorBenchmark for DevUrandomDirectRng {
+    const PREFIX: &'static str = "rng::sys::urandom::direct";
 }
 
-impl RandGenerator for BufFileRng {
-    fn fill(&mut self, bytes: &mut [u8]) {
-        assert_eq!(
-            bytes.len(),
-            self.file
-                .read(bytes)
-                .expect("unable to read from buffered rng file")
-        );
+/// RNG implementation over `/dev/random` with a buffer.
+pub struct DevRandomBufRng(ReadRng<BufReader<File>>);
+
+impl DevRandomBufRng {
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
-pub struct DevRandomBufRng(BufFileRng);
-
-impl DevRandomBufRng {
-    pub const PREFIX: &'static str = "rng::sys::random::buffered";
-
-    pub fn new() -> Self {
-        Self(BufFileRng {
-            file: BufReader::new(
+impl Default for DevRandomBufRng {
+    fn default() -> Self {
+        Self(ReadRng {
+            reader: BufReader::new(
                 File::options()
                     .read(true)
                     .open("/dev/random")
@@ -129,14 +152,23 @@ impl RandGenerator for DevRandomBufRng {
     }
 }
 
-pub struct DevUrandomBufRng(BufFileRng);
+impl RandGeneratorBenchmark for DevRandomBufRng {
+    const PREFIX: &'static str = "rng::sys::random::buffered";
+}
+
+/// RNG implementation over `/dev/urandom` with a buffer.
+pub struct DevUrandomBufRng(ReadRng<BufReader<File>>);
 
 impl DevUrandomBufRng {
-    pub const PREFIX: &'static str = "rng::sys::urandom::buffered";
-
     pub fn new() -> Self {
-        Self(BufFileRng {
-            file: BufReader::new(
+        Default::default()
+    }
+}
+
+impl Default for DevUrandomBufRng {
+    fn default() -> Self {
+        Self(ReadRng {
+            reader: BufReader::new(
                 File::options()
                     .read(true)
                     .open("/dev/urandom")
@@ -152,13 +184,17 @@ impl RandGenerator for DevUrandomBufRng {
     }
 }
 
+impl RandGeneratorBenchmark for DevUrandomBufRng {
+    const PREFIX: &'static str = "rng::sys::urandom::buffered";
+}
+
+/// RNG implementation using [openssl::rand::rand_bytes].
+#[derive(Default)]
 pub struct OpenSslRng {}
 
 impl OpenSslRng {
-    pub const PREFIX: &'static str = "rng::openssl";
-
     pub fn new() -> Self {
-        Self {}
+        Default::default()
     }
 }
 
@@ -168,17 +204,19 @@ impl RandGenerator for OpenSslRng {
     }
 }
 
+impl RandGeneratorBenchmark for OpenSslRng {
+    const PREFIX: &'static str = "rng::openssl";
+}
+
+/// RNG implementation over [OsRng].
+#[derive(Default)]
 pub struct RandOsRng {
     source: OsRng,
 }
 
 impl RandOsRng {
-    pub const PREFIX: &'static str = "rng::rand_crate::os";
-
     pub fn new() -> Self {
-        Self {
-            source: OsRng::default(),
-        }
+        Default::default()
     }
 }
 
@@ -188,17 +226,19 @@ impl RandGenerator for RandOsRng {
     }
 }
 
+impl RandGeneratorBenchmark for RandOsRng {
+    const PREFIX: &'static str = "rng::rand_crate::os";
+}
+
+/// RNG implementation over [rand::rngs::ThreadRng].
+#[derive(Default)]
 pub struct RandThreadRng {
     source: ThreadRng,
 }
 
 impl RandThreadRng {
-    pub const PREFIX: &'static str = "rng::rand_crate::thread";
-
     pub fn new() -> Self {
-        Self {
-            source: ThreadRng::default(),
-        }
+        Default::default()
     }
 }
 
@@ -206,4 +246,8 @@ impl RandGenerator for RandThreadRng {
     fn fill(&mut self, bytes: &mut [u8]) {
         self.source.fill(bytes);
     }
+}
+
+impl RandGeneratorBenchmark for RandThreadRng {
+    const PREFIX: &'static str = "rng::rand_crate::thread";
 }
