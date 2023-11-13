@@ -11,7 +11,15 @@ name = "keygen"
 harness = false
 
 [[bench]]
+name = "iters"
+harness = false
+
+[[bench]]
 name = "rand"
+harness = false
+
+[[bench]]
+name = "secp384r1"
 harness = false
 
 [[bench]]
