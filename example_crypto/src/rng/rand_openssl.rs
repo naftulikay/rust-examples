@@ -5,6 +5,7 @@ pub struct OpenSslRng {}
 
 impl OpenSslRng {
     /// Constructs a new instance.
+    #[allow(unused)]
     pub fn new() -> Self {
         Self {}
     }
