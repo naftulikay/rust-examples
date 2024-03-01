@@ -1,0 +1,21 @@
+[package]
+name = "example_watchexec"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[example]]
+name = "watchexec_async"
+path = "examples/watchexec_async.rs"
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+examples_common = { path = "../examples_common" }
+futures.workspace = true
+inotify.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+watchexec.workspace = true
+watchexec-events.workspace = true
+watchexec-signals.workspace = true
