@@ -5,11 +5,10 @@ use std::io;
 use std::iter::successors;
 use std::sync::Arc;
 
+use parking_lot::Once;
 use tracing::{Level, Metadata};
 use tracing_subscriber::{filter, Layer, Registry};
 use tracing_subscriber::layer::SubscriberExt;
-
-use parking_lot::Once;
 
 const DEFAULT_LEVEL: Level = Level::WARN;
 const DEFAULT_CRATE_LEVEL: Level = Level::DEBUG;
