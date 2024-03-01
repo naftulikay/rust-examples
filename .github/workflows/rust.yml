@@ -91,5 +91,5 @@ jobs:
             ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: cargo-bins/cargo-binstall@main
-      - run: cargo bininstall -y cargo-audit
+      - run: cargo binnstall -y cargo-audit
       - run: cargo audit
