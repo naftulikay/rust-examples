@@ -157,19 +157,32 @@ async fn main() -> Result<()> {
     tracing::info!("Starting watchexec");
     tracing::info!("Modify ./{} to trigger events", PathBuf::from(example_watchexec::CRATE_NAME).join(WATCHED_FILE_NAME).display());
 
+    // runtime handle to be passed into the executor
     let rt = Runtime::new();
-    let rt2 = rt.clone();
+    // runtime handle to remain outside of the executor
+    let rt_handle = rt.clone();
 
     // NOTE this is the most difficult part of all of this
     /*
-        Watchexec::nwe_async accept one argument:
+        Watchexec::new_async accepts one argument:
         
             impl Fn(ActionHandler) -> Box<dyn Future<Output=ActionHandler> + Send + Sync> + Send + Sync + 'static
             
-        So, what we need here is a regular (non-async) function as the first argument. This function must return a Box co
+        So, what we need here is a regular (non-async) function as the first argument. This function must return a Box
+        containing a Future, whose output type is the ActionHandler passed as the first argument.
+
+        The dynamic future must be Send and Sync. Send means that the future must be able to be sent across threads,
+        which can happen if the task is relocated from one thread executor to another. It must also be Sync, so that
+        anything it references must have synchronized access, preventing data-races, because otherwise it could be
+        executed in parallel and violate memory safety for whatever it references.
+
+        The final `Send + Sync + 'static` do _not_ apply to the `Box`, which is not a trait, but to the `impl Fn(...)`.
+        The generic `Fn` implementation must be Send and Sync, and it is, since everything it references are Send/Sync.
+        It also is 'static, because it is not a local closure with references to local memory.
      */
     let wx = Watchexec::new_async(move |action| {
-        let rt = rt2.clone();
+        let rt = rt.clone();
+
         Box::new(async move {
             rt.lock().await.on_event(action).await
         })
@@ -179,10 +192,10 @@ async fn main() -> Result<()> {
     wx.main().await??;
 
     let total_events: usize = {
-        rt.lock().await.event_history.values().map(|v| v.len()).sum()
+        rt_handle.lock().await.event_history.values().map(|v| v.len()).sum()
     };
 
-    tracing::info!(events = rt.lock().await.event_count, total_events, "Shutting down");
+    tracing::info!(events = rt_handle.lock().await.event_count, total_events, "Shutting down");
 
     Ok(())
 }
