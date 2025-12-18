@@ -44,9 +44,9 @@ fn main() -> Result<(), Error> {
     let pgp_uid = UserID::from_address("Nafutli Kay", "Ol' Yeller", "unreachable@naftuli.wtf")?;
 
     tracing::info!(
-        name = pgp_uid.name2()?,
-        comment = pgp_uid.comment2()?,
-        email = pgp_uid.email2()?,
+        name = pgp_uid.name()?,
+        comment = pgp_uid.comment()?,
+        email = pgp_uid.email()?,
         "Created PGP user id"
     );
 

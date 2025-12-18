@@ -115,7 +115,9 @@ impl Runtime {
 
 #[derive(Debug)]
 enum ChangeEvent {
+    #[allow(dead_code)]
     FileChanged(FileChangeEvent),
+    #[allow(dead_code)]
     SignalReceived(Signal),
 }
 

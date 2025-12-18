@@ -38,7 +38,7 @@ base64.workspace = true
 hex.workspace = true
 openssl = { version = "0.10", features = ["vendored"] }
 rand.workspace = true
-sequoia-openpgp = "1"
+sequoia-openpgp = "2"
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
