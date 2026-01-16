@@ -1,29 +1,20 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use example_crypto::openssl::keygen::{keygen_ec, keygen_ed25519, keygen_ed448, keygen_rsa, keygen_x25519, keygen_x448};
-use openssl::ec::EcGroup;
-use openssl::nid::Nid;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use example_crypto::openssl::benches::KeyGenerator;
 
-pub fn bench_keygen(c: &mut Criterion) {
-    let secp256k1 = EcGroup::from_curve_name(Nid::SECP256K1).unwrap();
+fn bench_keygen(c: &mut Criterion) {
+    let mut group = c.benchmark_group("openssl::keygen");
 
-    // // eddsa
-    c.bench_function("openssl::keygen::ed25519", |b| b.iter(|| keygen_ed25519()));
-    c.bench_function("openssl::keygen::ed448", |b| b.iter(|| keygen_ed448()));
-    c.bench_function("openssl::keygen::x25519", |b| b.iter(|| keygen_x25519()));
-    c.bench_function("openssl::keygen::x448", |b| b.iter(|| keygen_x448()));
-
-    // ecdsa
-    c.bench_function("openssl::keygen::secp256", |b| {
-        b.iter(|| keygen_ec(&secp256k1))
+    group.bench_function("prime256v1", |b| {
+        b.iter(black_box(KeyGenerator::prime256v1))
     });
 
-    // rsa
-    c.bench_function("openssl::keygen::rsa2048", |b| b.iter(|| keygen_rsa(2048)));
-    c.bench_function("openssl::keygen::rsa3072", |b| b.iter(|| keygen_rsa(3072)));
-    c.bench_function("openssl::keygen::rsa4096", |b| b.iter(|| keygen_rsa(4096)));
+    group.bench_function("secp256k1", |b| b.iter(black_box(KeyGenerator::secp256k1)));
+    group.bench_function("secp384r", |b| b.iter(black_box(KeyGenerator::secp384r1)));
+    group.bench_function("ed25519", |b| b.iter(black_box(KeyGenerator::ed25519)));
+    group.bench_function("ed448", |b| b.iter(black_box(KeyGenerator::ed448)));
 }
 
-criterion_group!{
+criterion_group! {
     name = keygen;
     config = Criterion::default();
     targets = bench_keygen
