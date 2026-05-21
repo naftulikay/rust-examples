@@ -16,5 +16,5 @@ Licensed at your discretion under either:
  - [Apache Software License, Version 2.0](./LICENSE-APACHE)
  - [MIT License](./LICENSE-MIT)
 
- [status]:     https://github.com/naftulikay/rust-examples/actions/workflows/rust.yml
- [status.svg]: https://github.com/naftulikay/rust-examples/actions/workflows/rust.yml/badge.svg
+ [status]:     https://github.com/naftulikay/rust-examples/actions/workflows/ci.yml
+ [status.svg]: https://github.com/naftulikay/rust-examples/actions/workflows/ci.yml/badge.svg
