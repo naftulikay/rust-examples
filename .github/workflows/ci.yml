@@ -1,0 +1,18 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  rust:
+    uses: ./.github/workflows/rust.yml
+    with:
+      # line-delimited list of RUSTSEC-* advisory IDs to ignore during audit run
+      cargo_audit_ignore_advisories: ""
+      rust_toolchain: "stable"
