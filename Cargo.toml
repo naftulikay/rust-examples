@@ -4,6 +4,7 @@ members = [
     "examples_common",
     "example_crypto",
     "example_parsing",
+    "example_syntax_highlight",
     "example_vfs",
     "example_watchexec",
 ]
