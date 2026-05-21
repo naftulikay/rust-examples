@@ -1,95 +1,150 @@
----
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch: { }
+  workflow_call:
+    inputs:
+      cache_version:
+        type: string
+        default: v1
+        description: Version for all stored caches, changing this will purge the cache.
+      cargo_audit_ignore_advisories:
+        type: string
+        required: true
+        description: Line-delimited list of RUSTSEC-* advisorie IDs to ignore during audit step.
+      cargo_audit_version:
+        type: string
+        default: "0.22.1"
+        description: Version of cargo-audit to use for security audits.
+      cargo_clean:
+        type: boolean
+        default: false
+        description: Whether to run `cargo clean` before building.
+      rust_toolchain:
+        type: string
+        default: stable
+        description: |-
+          The Rust toolchain version to use, either `stable`, `beta`, or `nightly`, or alternately a specific version.
 
 name: rust
 
 env:
+  # if builds fail, we can add librust-nettle-sys-dev at the expense of build time
   APT_PACKAGES: libclang-dev nettle-dev
-  CACHE_VERSION: v1
-  RUSTC_WRAPPER: "/home/runner/.cargo/bin/sccache"
-  SCCACHE_VERSION: 0.7.7
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
+          # want to cache apt? /var/lib/apt/lists and /var/cache/apt
           path: |
+            ~/.cache/sccache
+            ~/.cargo/.crates*
             ~/.cargo/bin/
-            ~/.cargo/registry/index/
+            ~/.cargo/binstall/
             ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
             ~/.cargo/git/db/
-            ~/.cache/sccache/
-            ~/.rustup/
             target/
           restore-keys: |
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-
+      # install the rust toolchain at the version requested
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "${{ inputs.rust_toolchain }}"
+      # install sccache
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      # install mold
+      - uses: rui314/setup-mold@v1
+      # install cargo-binstall
+      - uses: cargo-bins/cargo-binstall@main
+      # install apt packages
       - name: install system packages
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.APT_PACKAGES }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: cargo-bins/cargo-binstall@main
-      - run: cargo binstall -y sccache@${{ env.SCCACHE_VERSION }}
+      # build the workspace
       - run: cargo build --all --examples --release
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
           path: |
+            ~/.cache/sccache
+            ~/.cargo/.crates*
             ~/.cargo/bin/
-            ~/.cargo/registry/index/
+            ~/.cargo/binstall/
             ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
             ~/.cargo/git/db/
-            ~/.cache/sccache/
-            ~/.rustup/
             target/
           restore-keys: |
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-
+      # install the rust toolchain at the version requested
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "${{ inputs.rust_toolchain }}"
+      # install sccache
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      # install mold
+      - uses: rui314/setup-mold@v1
+      # install cargo-binstall
+      - uses: cargo-bins/cargo-binstall@main
+      # install apt packages
       - name: install system packages
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.APT_PACKAGES }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: cargo-bins/cargo-binstall@main
-      - run: cargo binstall -y sccache@${{ env.SCCACHE_VERSION }}
+      # run the tests
       - run: cargo test --all --examples --all-features
 
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           key: ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           path: |
+            ~/.cache/sccache
+            ~/.cargo/.crates*
             ~/.cargo/bin/
-            ~/.cargo/registry/index/
+            ~/.cargo/binstall/
             ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
             ~/.cargo/git/db/
-            ~/.cache/sccache/
-            ~/.rustup/
             target/
           restore-keys: |
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}-${{ github.job }}-
-            ${{ runner.os }}-${{ github.workflow }}-${{ env.CACHE_VERSION }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-${{ github.job }}-
+      # install the rust toolchain at the version requested
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "${{ inputs.rust_toolchain }}"
+      # install sccache
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      # install mold
+      - uses: rui314/setup-mold@v1
+      # install cargo-binstall
       - uses: cargo-bins/cargo-binstall@main
+      # install cargo-audit
       - run: cargo binstall -y cargo-audit
       - run: cargo audit
+      # run the audit
+      - name: cargo audit
+        run: |
+          # include ignore flags for each item mentioned in the env var
+          cargo audit $(echo "${{ inputs.cargo_audit_ignores }}" | while read ignore ; do
+            if [ ! -z "${ignore}" ]; then
+              echo "--ignore ${ignore}"
+            fi
+          done)
